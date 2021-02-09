@@ -1,0 +1,26 @@
+add IP4Address vlan10 Address=10.1.2.0/24 -silent -force
+add IP4Address vlan20 Address=10.1.3.0/24 -silent -force
+
+
+add IP4Address net2 Address=10.2.4.0/24 -silent -force
+add IP4Address net1 Address=10.2.3.0/24 -silent -force
+
+add IP4Group local_VLANs_nets Members= vlan10, vlan20 -silent -force
+add IP4Group Tokyo_nets Members= net2, net1 -silent -force
+
+
+
+add IP4Address Tokyo_vpn_gw Address=192.168.101.101 -silent -force
+
+add IKEAlgorithms Tokyo_vpn AESEnabled=True AESMinKeySize=192 AESKeySize=256 SHA512Enabled=True -silent -force
+add IPsecAlgorithms Tokyo_vpn AESEnabled=True AESMinKeySize=192 AESKeySize=256 SHA512Enabled=True -silent -force
+add PSK Tokyo_vpn Type=ASCII PSKAscii=EeFo8vahng5eeQuei5go -silent -force
+add IPsecTunnel Tokyo_vpn LocalNetwork=all-nets RemoteNetwork=all-nets RemoteEndpoint=Tokyo_vpn_gw IKEAlgorithms=Tokyo_vpn IPsecAlgorithms=Tokyo_vpn IKELifeTimeSeconds=86400 IPsecLifeTimeSeconds=86400 PSK=Tokyo_vpn IKEVersion=1 DHGroup=18 PFSDHGroup=18 AutoInterfaceNetworkRoute=False  ProxyARPInterfaces="" -silent -force
+
+add IPRule Name=Tokyo-to-local_VLANs-permit_any Action=Allow SourceInterface=Tokyo_vpn DestinationInterface=any SourceNetwork=Tokyo_nets DestinationNetwork=local_VLANs_nets Service=all_services -silent -force
+add IPRule Name=local_VLANs-to-Tokyopermit_any Action=Allow SourceInterface=any DestinationInterface=Tokyo_vpn SourceNetwork=local_VLANs_nets DestinationNetwork=Tokyo_nets Service=all_services -silent -force
+
+cc RoutingTable main
+add Route Interface=Tokyo_vpn Network=net2 Metric=90 Comments="Direct route for Tokyo network over the vpn" ProxyARPInterfaces="" -silent -force
+add Route Interface=Tokyo_vpn Network=net1 Metric=90 Comments="Direct route for Tokyo network over the vpn" ProxyARPInterfaces="" -silent -force
+cc ..
