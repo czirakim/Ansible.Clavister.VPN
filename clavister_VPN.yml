@@ -1,0 +1,60 @@
+---
+- hosts: clavister
+  gather_facts: no
+  connection: local
+  vars_files:
+    - vars
+
+  tasks:
+    - name: Render config for host
+      template:
+        src: "templates/vpn.j2"
+        dest: "out/{{ inventory_hostname }}.sgs"
+
+    - name: copy config to device
+      shell:
+        cmd: sshpass -p {{ password }} scp out/{{ inventory_hostname }}.sgs  {{username}}@{{ansible_host}}:script/{{inventory_hostname}}.sgs
+      ignore_errors: yes
+
+    - name: activate and commit config
+      shell: |
+        set timeout 20
+        spawn sshpass -p {{ password }} ssh {{username}}@{{ansible_host}}
+
+        set prompt {\:\/\>}
+        exp_internal 1
+
+        expect -re $prompt
+        send "script -execute -name={{inventory_hostname}}.sgs \n"
+
+        expect -re $prompt
+        send "activate \n"
+
+        expect -re $prompt
+        sleep 5
+        send "commit \n"
+
+        expect -re $prompt
+        send "exit \n"
+
+        exit 0
+      args:
+        executable: /usr/bin/expect
+
+    - name: clean-up
+      shell: |
+        set timeout 20
+        spawn sshpass -p {{ password }} ssh {{username}}@{{ansible_host}}
+
+        set prompt {\:\/\>}
+        exp_internal 1
+
+        expect -re $prompt
+        send "script -remove -name={{inventory_hostname}}.sgs \n"
+
+        expect -re $prompt
+        send "exit \n"
+
+        exit 0
+      args:
+        executable: /usr/bin/expect
