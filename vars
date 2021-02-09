@@ -1,0 +1,21 @@
+# Credentials
+username: admin
+password: Admin1234
+
+# VPN
+local_name: local_VLANs
+local_nets:
+  vlan10: 10.1.2.0/24
+  vlan20: 10.1.3.0/24
+remote_name: Tokyo
+remote_nets:
+  net1: 10.2.3.0/24
+  net2: 10.2.4.0/24
+
+PSK: EeFo8vahng5eeQuei5go
+AESMinKeySize: 192
+AESKeySize: 256
+SHA: SHA512
+DHGroup: 18
+PFSDHGroup: 18
+remote_vpn_gw: 192.168.101.101
