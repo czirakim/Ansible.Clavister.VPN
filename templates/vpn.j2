@@ -1,0 +1,29 @@
+{% for subnet in local_nets -%}
+add IP4Address {{ subnet }} Address={{ local_nets[subnet] }} -silent -force
+{% endfor %}
+
+
+{% for subnet in remote_nets -%}
+add IP4Address {{ subnet }} Address={{ remote_nets[subnet] }} -silent -force
+{% endfor %}
+
+add IP4Group {{local_name}}_nets Members= {{ local_nets|join(", ") }} -silent -force
+add IP4Group {{remote_name}}_nets Members= {{ remote_nets|join(", ") }} -silent -force
+
+
+
+add IP4Address {{ remote_name }}_vpn_gw Address={{ remote_vpn_gw }} -silent -force
+
+add IKEAlgorithms {{ remote_name }}_vpn AESEnabled=True AESMinKeySize={{ AESMinKeySize }} AESKeySize={{ AESKeySize }} {{ SHA }}Enabled=True -silent -force
+add IPsecAlgorithms {{ remote_name }}_vpn AESEnabled=True AESMinKeySize={{ AESMinKeySize }} AESKeySize={{ AESKeySize }} {{ SHA }}Enabled=True -silent -force
+add PSK {{ remote_name }}_vpn Type=ASCII PSKAscii={{ PSK }} -silent -force
+add IPsecTunnel {{ remote_name }}_vpn LocalNetwork=all-nets RemoteNetwork=all-nets RemoteEndpoint={{ remote_name }}_vpn_gw IKEAlgorithms={{ remote_name }}_vpn IPsecAlgorithms={{ remote_name }}_vpn IKELifeTimeSeconds=86400 IPsecLifeTimeSeconds=86400 PSK=Tokyo_vpn IKEVersion=1 DHGroup={{ DHGroup }} PFSDHGroup={{ PFSDHGroup }} AutoInterfaceNetworkRoute=False  ProxyARPInterfaces="" -silent -force
+
+add IPRule Name={{ remote_name }}-to-{{ local_name }}-permit_any Action=Allow SourceInterface={{ remote_name }}_vpn DestinationInterface=any SourceNetwork={{remote_name}}_nets DestinationNetwork={{ local_name }}_nets Service=all_services -silent -force
+add IPRule Name={{ local_name }}-to-{{ remote_name }}permit_any Action=Allow SourceInterface=any DestinationInterface={{ remote_name }}_vpn SourceNetwork={{local_name}}_nets DestinationNetwork={{ remote_name }}_nets Service=all_services -silent -force
+
+cc RoutingTable main
+{% for subnet in remote_nets -%}
+add Route Interface={{ remote_name }}_vpn Network={{ subnet }} Metric=90 Comments="Direct route for {{ remote_name }} network over the vpn" ProxyARPInterfaces="" -silent -force
+{% endfor %}
+cc ..
